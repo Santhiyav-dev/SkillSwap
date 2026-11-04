@@ -24,7 +24,7 @@ function Home() {
       (request.senderId === currentUser.id || request.receiverId === currentUser.id),
   ).length;
 
-  const interests = (currentUser.interests || "")
+  const interests = (typeof currentUser.interests === "string" ? currentUser.interests : "")
     .split(",")
     .map((interest) => interest.trim().toLowerCase())
     .filter(Boolean);
@@ -51,7 +51,14 @@ function Home() {
 
   const stats = [
     { label: "Skills available", value: skills.length },
-    { label: "Skills being learned", value: new Set(activeRequests.filter((request) => request.senderId === currentUser.id).map((request) => String(request.skillId))).size },
+    {
+      label: "Skills being learned",
+      value: new Set(
+        activeRequests
+          .filter((request) => request.senderId === currentUser.id)
+          .map((request) => String(request.skillId)),
+      ).size,
+    },
     { label: "Pending requests", value: pendingCount },
   ];
 

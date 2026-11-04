@@ -19,7 +19,7 @@ function Favourites() {
   };
 
   const filteredFavourites = favourites.filter((skill) =>
-    (skill.title || "").toLowerCase().includes(search.trim().toLowerCase()),
+    (typeof skill.title === "string" ? skill.title : "").toLowerCase().includes(search.trim().toLowerCase()),
   );
 
   return (
@@ -60,38 +60,38 @@ function Favourites() {
           ) : (
             <div className="favourites-grid">
               {filteredFavourites.map((skill) => (
-              <article className="favourite-card" key={skill.id}>
-                <div className="favourite-card-top">
-                  <span className="favourite-tag">{skill.category}</span>
-                  <span className="favourite-heart">♥</span>
-                </div>
+                <article className="favourite-card" key={skill.id}>
+                  <div className="favourite-card-top">
+                    <span className="favourite-tag">{skill.category}</span>
+                    <span className="favourite-heart">♥</span>
+                  </div>
 
-                <div className="favourite-skill-row">
-                  <span className="favourite-icon">{skill.icon}</span>
-                  <span className="favourite-level">{skill.experience}</span>
-                </div>
+                  <div className="favourite-skill-row">
+                    <span className="favourite-icon">{skill.icon}</span>
+                    <span className="favourite-level">{skill.experience}</span>
+                  </div>
 
-                <h2>{skill.title}</h2>
-                <p>{skill.description}</p>
+                  <h2>{skill.title}</h2>
+                  <p>{skill.description}</p>
 
-                <div className="favourite-meta">
-                  <p>
-                    <strong>Provider:</strong> {skill.provider}
-                  </p>
-                  <p>
-                    <strong>Wants to learn:</strong> {skill.exchange || "Not specified"}
-                  </p>
-                </div>
+                  <div className="favourite-meta">
+                    <p>
+                      <strong>Provider:</strong> {skill.provider}
+                    </p>
+                    <p>
+                      <strong>Wants to learn:</strong> {skill.exchange || "Not specified"}
+                    </p>
+                  </div>
 
-                <div className="card-actions">
-                  <Link to={`/skill/${skill.id}`} className="ghost-btn">
-                    View
-                  </Link>
-                  <button type="button" className="danger-btn" onClick={() => removeFavourite(skill.id)}>
-                    Remove
-                  </button>
-                </div>
-              </article>
+                  <div className="card-actions">
+                    <Link to={`/skill/${skill.id}`} className="ghost-btn">
+                      View
+                    </Link>
+                    <button type="button" className="danger-btn" onClick={() => removeFavourite(skill.id)}>
+                      Remove
+                    </button>
+                  </div>
+                </article>
               ))}
             </div>
           )}
