@@ -16,6 +16,25 @@
   font-weight: 700;
 }
 
+.favourites-search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 440px);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.favourites-search input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(109, 40, 217, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px 14px;
+  color: var(--text);
+}
+
 .favourites-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

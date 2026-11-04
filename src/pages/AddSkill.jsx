@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { readStorage, STORAGE_KEYS, writeStorage } from "../data/skills";
+import { getCurrentUser, readStorage, STORAGE_KEYS, writeStorage } from "../data/skills";
 import "./AddSkill.css";
 
 const categoryIcons = {
@@ -41,8 +41,9 @@ function AddSkill() {
       return;
     }
 
-    const existingSkills = readStorage(STORAGE_KEYS.skills, []);
-    const profile = readStorage(STORAGE_KEYS.profile, { name: "Student" });
+    const storedSkills = readStorage(STORAGE_KEYS.skills, []);
+    const existingSkills = Array.isArray(storedSkills) ? storedSkills : [];
+    const profile = getCurrentUser();
 
     const newSkill = {
       id: Date.now(),
@@ -52,6 +53,7 @@ function AddSkill() {
       experience: formData.experience,
       exchange: formData.exchange.trim(),
       provider: profile.name || "Student",
+      ownerId: profile.id,
       icon: categoryIcons[formData.category] || "✨",
       featured: false,
       createdAt: new Date().toISOString(),

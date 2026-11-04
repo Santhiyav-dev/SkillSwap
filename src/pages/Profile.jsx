@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { DEFAULT_PROFILE, readStorage, STORAGE_KEYS, writeStorage } from "../data/skills";
+import {
+  getCurrentUser,
+  getRequestsReceivedBy,
+  getRequestsSentBy,
+  getSkillsOwnedBy,
+  STORAGE_KEYS,
+  writeStorage,
+} from "../data/skills";
 import "./Profile.css";
 
 function Profile() {
-  const [profile, setProfile] = useState(() => readStorage(STORAGE_KEYS.profile, DEFAULT_PROFILE));
+  const [profile, setProfile] = useState(() => getCurrentUser());
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
 
-  const skills = readStorage(STORAGE_KEYS.skills, []);
-  const requests = readStorage(STORAGE_KEYS.requests, []);
+  const skills = getSkillsOwnedBy(profile.id);
+  const requests = [...getRequestsSentBy(profile.id), ...getRequestsReceivedBy(profile.id)];
   const acceptedConnections = requests.filter((request) => request.status === "Accepted").length;
 
   const handleChange = (event) => {
@@ -30,6 +37,7 @@ function Profile() {
   const handleSave = (event) => {
     event.preventDefault();
     writeStorage(STORAGE_KEYS.profile, profile);
+    window.dispatchEvent(new Event("skillswap:profile-updated"));
     setEditing(false);
     setMessage("Profile updated successfully.");
     window.setTimeout(() => setMessage(""), 2600);

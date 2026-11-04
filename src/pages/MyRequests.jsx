@@ -1,15 +1,51 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { DEFAULT_REQUESTS, readStorage, STORAGE_KEYS, writeStorage } from "../data/skills";
+import {
+  getCurrentUser,
+  getRequestsSentBy,
+  STORAGE_KEYS,
+  updateRequestStatus,
+} from "../data/skills";
 import "./MyRequests.css";
 
-function MyRequests() {
-  const [requests, setRequests] = useState(() => readStorage(STORAGE_KEYS.requests, DEFAULT_REQUESTS));
+function formatRequestDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString();
+}
 
-  const cancelRequest = (id) => {
-    const updated = requests.filter((request) => request.id !== id);
-    setRequests(updated);
-    writeStorage(STORAGE_KEYS.requests, updated);
+function MyRequests() {
+  const [requests, setRequests] = useState(() => getRequestsSentBy(getCurrentUser().id));
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => {
+    const syncRequests = (event) => {
+      if (
+        !event ||
+        event.key === null ||
+        event.key === STORAGE_KEYS.requests ||
+        event.key === STORAGE_KEYS.profile
+      ) {
+        setRequests(getRequestsSentBy(getCurrentUser().id));
+      }
+    };
+
+    window.addEventListener("storage", syncRequests);
+    return () => window.removeEventListener("storage", syncRequests);
+  }, []);
+
+  const cancelRequest = (requestId) => {
+    try {
+      const result = updateRequestStatus(requestId, getCurrentUser().id, "Cancelled");
+      if (!result.ok) {
+        setFeedback(result.error);
+        return;
+      }
+
+      setRequests(result.requests.filter((request) => request.senderId === getCurrentUser().id));
+      setFeedback("Request cancelled. Its history remains available.");
+    } catch {
+      setFeedback("The request could not be cancelled. Please try again.");
+    }
   };
 
   return (
@@ -25,6 +61,8 @@ function MyRequests() {
         <strong>{requests.length}</strong>
         <span>total request(s)</span>
       </div>
+
+      {feedback && <p className="request-feedback" role="status">{feedback}</p>}
 
       {requests.length === 0 ? (
         <div className="empty-state">
@@ -48,18 +86,22 @@ function MyRequests() {
 
               <div className="request-body">
                 <p>
-                  <strong>Your name:</strong> {request.learnerName}
+                  <strong>Skill owner:</strong> {request.receiverName}
                 </p>
                 <p>
-                  <strong>Message:</strong> {request.message}
+                  <strong>Message:</strong> {request.message || "No message provided."}
                 </p>
                 <p>
-                  <strong>Requested on:</strong> {new Date(request.createdAt).toLocaleDateString()}
+                  <strong>Requested on:</strong> {formatRequestDate(request.createdAt)}
                 </p>
               </div>
 
               {request.status === "Pending" && (
-                <button type="button" className="danger-btn request-action" onClick={() => cancelRequest(request.id)}>
+                <button
+                  type="button"
+                  className="danger-btn request-action"
+                  onClick={() => cancelRequest(request.id)}
+                >
                   Cancel request
                 </button>
               )}

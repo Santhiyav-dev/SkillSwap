@@ -1,17 +1,50 @@
-import { useState } from "react";
-import { readStorage, STORAGE_KEYS, writeStorage } from "../data/skills";
+import { useEffect, useState } from "react";
+import {
+  getCurrentUser,
+  getRequestsReceivedBy,
+  STORAGE_KEYS,
+  updateRequestStatus,
+} from "../data/skills";
 import "./IncomingRequests.css";
 
+function formatRequestDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString();
+}
+
 function IncomingRequests() {
-  const [requests, setRequests] = useState(() => readStorage(STORAGE_KEYS.requests, []));
+  const [requests, setRequests] = useState(() => getRequestsReceivedBy(getCurrentUser().id));
+  const [feedback, setFeedback] = useState("");
 
-  const updateRequestStatus = (id, nextStatus) => {
-    const updatedRequests = requests.map((request) =>
-      request.id === id ? { ...request, status: nextStatus } : request,
-    );
+  useEffect(() => {
+    const syncRequests = (event) => {
+      if (
+        !event ||
+        event.key === null ||
+        event.key === STORAGE_KEYS.requests ||
+        event.key === STORAGE_KEYS.profile
+      ) {
+        setRequests(getRequestsReceivedBy(getCurrentUser().id));
+      }
+    };
 
-    setRequests(updatedRequests);
-    writeStorage(STORAGE_KEYS.requests, updatedRequests);
+    window.addEventListener("storage", syncRequests);
+    return () => window.removeEventListener("storage", syncRequests);
+  }, []);
+
+  const respondToRequest = (requestId, status) => {
+    try {
+      const result = updateRequestStatus(requestId, getCurrentUser().id, status);
+      if (!result.ok) {
+        setFeedback(result.error);
+        return;
+      }
+
+      setRequests(result.requests.filter((request) => request.receiverId === getCurrentUser().id));
+      setFeedback(`Request ${status.toLowerCase()} successfully.`);
+    } catch {
+      setFeedback("The request could not be updated. Please try again.");
+    }
   };
 
   return (
@@ -22,6 +55,8 @@ function IncomingRequests() {
           <p>Review learners who are interested in the skills you offer and respond quickly.</p>
         </div>
       </div>
+
+      {feedback && <p className="request-feedback" role="status">{feedback}</p>}
 
       {requests.length === 0 ? (
         <div className="empty-state">
@@ -34,35 +69,37 @@ function IncomingRequests() {
             <article className="incoming-card" key={request.id}>
               <div className="incoming-card-top">
                 <div>
-                  <span className="request-label">Skill</span>
+                  <span className="request-label">Requested skill</span>
                   <h2>{request.skillTitle}</h2>
                 </div>
                 <span className={`status-pill ${request.status.toLowerCase()}`}>{request.status}</span>
               </div>
 
               <div className="request-person">
-                <strong>{request.learnerName}</strong>
-                <span>{new Date(request.createdAt).toLocaleDateString()}</span>
+                <strong>{request.senderName}</strong>
+                <span>{formatRequestDate(request.createdAt)}</span>
               </div>
 
-              <p className="request-message">{request.message}</p>
+              <p className="request-message">{request.message || "No message provided."}</p>
 
-              <div className="card-actions">
-                <button
-                  type="button"
-                  className="primary-btn"
-                  onClick={() => updateRequestStatus(request.id, "Accepted")}
-                >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  className="danger-btn"
-                  onClick={() => updateRequestStatus(request.id, "Rejected")}
-                >
-                  Reject
-                </button>
-              </div>
+              {request.status === "Pending" && (
+                <div className="card-actions">
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={() => respondToRequest(request.id, "Accepted")}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-btn"
+                    onClick={() => respondToRequest(request.id, "Rejected")}
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>

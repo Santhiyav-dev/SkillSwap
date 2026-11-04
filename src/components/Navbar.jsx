@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { getCurrentUser } from "../data/skills";
 import SkillSwapLogo from "./SkillSwapLogo";
 import "./Navbar.css";
 
@@ -63,6 +64,17 @@ function navIcon(type) {
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(() => getCurrentUser());
+
+  useEffect(() => {
+    const syncProfile = () => setUser(getCurrentUser());
+    window.addEventListener("storage", syncProfile);
+    window.addEventListener("skillswap:profile-updated", syncProfile);
+    return () => {
+      window.removeEventListener("storage", syncProfile);
+      window.removeEventListener("skillswap:profile-updated", syncProfile);
+    };
+  }, []);
 
   return (
     <header className="navbar-shell">
@@ -99,10 +111,10 @@ function Navbar() {
         </div>
 
         <div className="nav-user" aria-label="Current user">
-          <span className="user-avatar">S</span>
+          <span className="user-avatar">{user.name.charAt(0).toUpperCase()}</span>
           <div className="user-meta">
-            <strong>Student</strong>
-            <small>Skill learner</small>
+            <strong>{user.name}</strong>
+            <small>{user.role || "Skill learner"}</small>
           </div>
         </div>
       </nav>

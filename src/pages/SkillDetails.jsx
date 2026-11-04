@@ -1,16 +1,30 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { DEFAULT_SKILLS, readStorage, STORAGE_KEYS, writeStorage } from "../data/skills";
+import {
+  DEFAULT_SKILLS,
+  getCurrentUser,
+  getRequestsSentBy,
+  readStorage,
+  STORAGE_KEYS,
+  createLearningRequest,
+} from "../data/skills";
 import "./SkillDetails.css";
 
 function SkillDetails() {
   const { id } = useParams();
-  const skills = readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS);
+  const storedSkills = readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS);
+  const skills = Array.isArray(storedSkills) ? storedSkills : DEFAULT_SKILLS;
   const skill = skills.find((item) => String(item.id) === id);
-  const profile = readStorage(STORAGE_KEYS.profile, { name: "Student" });
+  const currentUser = getCurrentUser();
 
   const [message, setMessage] = useState("");
-  const [learnerName, setLearnerName] = useState(profile.name || "Student");
+  const [hasPendingRequest, setHasPendingRequest] = useState(() =>
+    skill
+      ? getRequestsSentBy(currentUser.id).some(
+          (request) => String(request.skillId) === String(skill.id) && request.status === "Pending",
+        )
+      : false,
+  );
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
@@ -19,42 +33,30 @@ function SkillDetails() {
 
     if (!skill) return;
 
-    const trimmedName = learnerName.trim();
     const trimmedMessage = message.trim();
 
-    if (!trimmedName || !trimmedMessage) {
-      setError("Please add your name and a short message before submitting.");
+    if (!trimmedMessage) {
+      setError("Please add a short message before submitting.");
       setSuccess("");
       return;
     }
 
-    const requests = readStorage(STORAGE_KEYS.requests, []);
-    const duplicateRequest = requests.some(
-      (request) =>
-        String(request.skillId) === String(skill.id) &&
-        request.learnerName.trim().toLowerCase() === trimmedName.toLowerCase(),
-    );
+    try {
+      const result = createLearningRequest(skill, trimmedMessage);
+      if (!result.ok) {
+        setError(result.error);
+        setSuccess("");
+        return;
+      }
 
-    if (duplicateRequest) {
-      setError("You already sent a request for this skill.");
+      setMessage("");
+      setHasPendingRequest(true);
+      setError("");
+      setSuccess("Your learning request has been submitted successfully.");
+    } catch {
+      setError("Your request could not be saved. Please try again.");
       setSuccess("");
-      return;
     }
-
-    const newRequest = {
-      id: Date.now(),
-      skillId: skill.id,
-      skillTitle: skill.title,
-      learnerName: trimmedName,
-      message: trimmedMessage,
-      status: "Pending",
-      createdAt: new Date().toISOString(),
-    };
-
-    writeStorage(STORAGE_KEYS.requests, [...requests, newRequest]);
-    setMessage("");
-    setError("");
-    setSuccess("Your learning request has been submitted successfully.");
   };
 
   if (!skill) {
@@ -108,25 +110,32 @@ function SkillDetails() {
           {success && <div className="request-success">{success}</div>}
           {error && <div className="request-error">{error}</div>}
 
-          <form onSubmit={handleSubmit} className="request-form">
+          <div className="request-form">
             <label>
-              <span>Your name</span>
-              <input value={learnerName} onChange={(event) => setLearnerName(event.target.value)} placeholder="Enter your name" />
+              <span>Requesting as</span>
+              <input value={currentUser.name} readOnly aria-readonly="true" />
             </label>
 
-            <label>
-              <span>Your message</span>
-              <textarea
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                placeholder="Hi! I’d love to learn this skill with you."
-              />
-            </label>
+            {hasPendingRequest ? (
+              <p className="request-success">You already have a pending request for this skill.</p>
+            ) : (
+              <form onSubmit={handleSubmit} className="request-form">
+                <label>
+                  <span>Your message</span>
+                  <textarea
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    placeholder="Hi! I’d love to learn this skill with you."
+                    required
+                  />
+                </label>
 
-            <button type="submit" className="primary-btn">
-              Send request
-            </button>
-          </form>
+                <button type="submit" className="primary-btn">
+                  Send request
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>

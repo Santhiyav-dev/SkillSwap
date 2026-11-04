@@ -9,9 +9,15 @@ import {
 import "./Explore.css";
 
 function Explore() {
-  const [skills] = useState(() => readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS));
+  const [skills] = useState(() => {
+    const storedSkills = readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS);
+    return Array.isArray(storedSkills)
+      ? storedSkills.filter((skill) => skill && typeof skill === "object")
+      : DEFAULT_SKILLS;
+  });
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [experience, setExperience] = useState("All");
   const [sortBy, setSortBy] = useState("featured");
   const [favourites, setFavourites] = useState(() => readStorage(STORAGE_KEYS.favourites, []));
 
@@ -21,7 +27,8 @@ function Explore() {
     const nextSkills = skills.filter((skill) => {
       const matchesSearch = skill.title.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = category === "All" || skill.category === category;
-      return matchesSearch && matchesCategory;
+      const matchesExperience = experience === "All" || skill.experience === experience;
+      return matchesSearch && matchesCategory && matchesExperience;
     });
 
     switch (sortBy) {
@@ -37,7 +44,7 @@ function Explore() {
       default:
         return [...nextSkills].sort((a, b) => Number(b.featured) - Number(a.featured));
     }
-  }, [category, search, skills, sortBy]);
+  }, [category, experience, search, skills, sortBy]);
 
   const toggleFavourite = (skill) => {
     const exists = favourites.some((item) => item.id === skill.id);
@@ -79,6 +86,17 @@ function Explore() {
                   {item}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label className="filter-box">
+            <span>Level</span>
+            <select value={experience} onChange={(event) => setExperience(event.target.value)}>
+              <option value="All">All levels</option>
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+              <option value="Expert">Expert</option>
             </select>
           </label>
 

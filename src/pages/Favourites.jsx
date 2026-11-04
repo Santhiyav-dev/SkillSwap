@@ -4,13 +4,23 @@ import { DEFAULT_SKILLS, readStorage, STORAGE_KEYS, writeStorage } from "../data
 import "./Favourites.css";
 
 function Favourites() {
-  const [favourites, setFavourites] = useState(() => readStorage(STORAGE_KEYS.favourites, DEFAULT_SKILLS.slice(0, 2)));
+  const [favourites, setFavourites] = useState(() => {
+    const savedSkills = readStorage(STORAGE_KEYS.favourites, DEFAULT_SKILLS.slice(0, 2));
+    return Array.isArray(savedSkills)
+      ? savedSkills.filter((skill) => skill && typeof skill === "object")
+      : [];
+  });
+  const [search, setSearch] = useState("");
 
   const removeFavourite = (id) => {
     const updated = favourites.filter((skill) => skill.id !== id);
     setFavourites(updated);
     writeStorage(STORAGE_KEYS.favourites, updated);
   };
+
+  const filteredFavourites = favourites.filter((skill) =>
+    (skill.title || "").toLowerCase().includes(search.trim().toLowerCase()),
+  );
 
   return (
     <div className="favourites-page">
@@ -32,9 +42,24 @@ function Favourites() {
       ) : (
         <>
           <div className="favourites-count">{favourites.length} saved skill(s)</div>
+          <label className="favourites-search">
+            <span>Search saved skills</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by skill name"
+            />
+          </label>
 
-          <div className="favourites-grid">
-            {favourites.map((skill) => (
+          {filteredFavourites.length === 0 ? (
+            <div className="empty-state">
+              <h2>No matching favourites</h2>
+              <p>Try a different search, or save more skills from Explore.</p>
+            </div>
+          ) : (
+            <div className="favourites-grid">
+              {filteredFavourites.map((skill) => (
               <article className="favourite-card" key={skill.id}>
                 <div className="favourite-card-top">
                   <span className="favourite-tag">{skill.category}</span>
@@ -67,8 +92,9 @@ function Favourites() {
                   </button>
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

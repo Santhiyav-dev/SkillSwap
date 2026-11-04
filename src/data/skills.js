@@ -159,6 +159,17 @@ export const DEFAULT_REQUESTS = [
   },
 ];
 
+const REQUEST_STATUSES = new Set(["Pending", "Accepted", "Rejected", "Cancelled"]);
+
+function createId(prefix) {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  return `${prefix}-${uuid || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+}
+
+function legacyId(prefix, value) {
+  return `${prefix}:${encodeURIComponent(String(value || "unknown").trim().toLowerCase())}`;
+}
+
 export function readStorage(key, fallback = []) {
   try {
     const value = localStorage.getItem(key);
@@ -170,6 +181,193 @@ export function readStorage(key, fallback = []) {
 
 export function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+export function getCurrentUser() {
+  const storedProfile = readStorage(STORAGE_KEYS.profile, DEFAULT_PROFILE);
+  const profile =
+    storedProfile && typeof storedProfile === "object" && !Array.isArray(storedProfile)
+      ? storedProfile
+      : { ...DEFAULT_PROFILE };
+  const user = {
+    ...DEFAULT_PROFILE,
+    ...profile,
+    id: typeof profile.id === "string" && profile.id.trim() ? profile.id : createId("user"),
+    name: typeof profile.name === "string" && profile.name.trim() ? profile.name.trim() : DEFAULT_PROFILE.name,
+  };
+
+  if (user.id !== profile.id || user.name !== profile.name) {
+    writeStorage(STORAGE_KEYS.profile, user);
+  }
+
+  return user;
+}
+
+function resolveSkillOwnerId(skill, currentUser) {
+  if (typeof skill.ownerId === "string" && skill.ownerId.trim()) return skill.ownerId;
+  if (typeof skill.providerId === "string" && skill.providerId.trim()) return skill.providerId;
+
+  const providerName = typeof skill.provider === "string" ? skill.provider.trim() : "";
+  if (providerName && providerName.toLowerCase() === currentUser.name.toLowerCase()) {
+    return currentUser.id;
+  }
+
+  return legacyId("legacy-provider", providerName || `skill-${skill.id}`);
+}
+
+function normalizeRequests(requests, skills, currentUser) {
+  const skillsById = new Map(skills.map((skill) => [String(skill.id), skill]));
+
+  return requests.filter((request) => request && typeof request === "object").map((request) => {
+    const skill = skillsById.get(String(request.skillId));
+    const requestId = request.id ?? createId("legacy-request");
+    const status = REQUEST_STATUSES.has(request.status) ? request.status : "Pending";
+    const senderName =
+      typeof request.senderName === "string" && request.senderName.trim()
+        ? request.senderName.trim()
+        : typeof request.learnerName === "string" && request.learnerName.trim()
+          ? request.learnerName.trim()
+          : "Learner";
+    const receiverName =
+      typeof request.receiverName === "string" && request.receiverName.trim()
+        ? request.receiverName.trim()
+        : skill?.provider || "Skill owner";
+    const receiverId =
+      typeof request.receiverId === "string" && request.receiverId.trim()
+        ? request.receiverId
+        : skill
+          ? resolveSkillOwnerId(skill, currentUser)
+          : legacyId("legacy-request-owner", requestId);
+    const createdAt =
+      typeof request.createdAt === "string" && !Number.isNaN(Date.parse(request.createdAt))
+        ? request.createdAt
+        : new Date(0).toISOString();
+
+    return {
+      ...request,
+      id: requestId,
+      senderId:
+        typeof request.senderId === "string" && request.senderId.trim()
+          ? request.senderId
+          : legacyId("legacy-request-sender", requestId),
+      senderName,
+      receiverId,
+      receiverName,
+      skillId: request.skillId ?? skill?.id ?? null,
+      skillTitle:
+        typeof request.skillTitle === "string" && request.skillTitle.trim()
+          ? request.skillTitle
+          : skill?.title || "Unavailable skill",
+      message: typeof request.message === "string" ? request.message : "",
+      status,
+      createdAt,
+    };
+  });
+}
+
+export function getRequestRecords() {
+  const currentUser = getCurrentUser();
+  const storedSkills = readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS);
+  const skills = (Array.isArray(storedSkills) ? storedSkills : DEFAULT_SKILLS)
+    .filter((skill) => skill && typeof skill === "object")
+    .map((skill) => ({
+      ...skill,
+      ownerId: resolveSkillOwnerId(skill, currentUser),
+      provider: skill.provider || currentUser.name,
+    }));
+  const storedRequests = readStorage(STORAGE_KEYS.requests, DEFAULT_REQUESTS);
+  const requests = normalizeRequests(
+    Array.isArray(storedRequests) ? storedRequests : [],
+    skills,
+    currentUser,
+  );
+
+  if (JSON.stringify(storedSkills) !== JSON.stringify(skills)) {
+    writeStorage(STORAGE_KEYS.skills, skills);
+  }
+  if (JSON.stringify(storedRequests) !== JSON.stringify(requests)) {
+    writeStorage(STORAGE_KEYS.requests, requests);
+  }
+  return requests;
+}
+
+export function getRequestsSentBy(userId) {
+  return getRequestRecords().filter((request) => request.senderId === userId);
+}
+
+export function getRequestsReceivedBy(userId) {
+  return getRequestRecords().filter(
+    (request) => request.receiverId === userId && request.status !== "Cancelled",
+  );
+}
+
+export function getSkillsOwnedBy(userId) {
+  getRequestRecords();
+  const skills = readStorage(STORAGE_KEYS.skills, []);
+  return (Array.isArray(skills) ? skills : []).filter((skill) => skill?.ownerId === userId);
+}
+
+export function createLearningRequest(skill, message) {
+  const currentUser = getCurrentUser();
+  const requests = getRequestRecords();
+  const receiverId = resolveSkillOwnerId(skill, currentUser);
+
+  if (receiverId === currentUser.id) {
+    return { ok: false, error: "You cannot request to learn your own skill." };
+  }
+
+  if (
+    requests.some(
+      (request) =>
+        request.senderId === currentUser.id &&
+        String(request.skillId) === String(skill.id) &&
+        request.status === "Pending",
+    )
+  ) {
+    return { ok: false, error: "You already have a pending request for this skill." };
+  }
+
+  const request = {
+    id: createId("request"),
+    senderId: currentUser.id,
+    senderName: currentUser.name,
+    receiverId,
+    receiverName: skill.provider || "Skill owner",
+    skillId: skill.id,
+    skillTitle: skill.title,
+    message: message.trim(),
+    status: "Pending",
+    createdAt: new Date().toISOString(),
+  };
+
+  writeStorage(STORAGE_KEYS.requests, [...requests, request]);
+  return { ok: true, request };
+}
+
+export function updateRequestStatus(requestId, userId, nextStatus) {
+  if (!["Accepted", "Rejected", "Cancelled"].includes(nextStatus)) {
+    return { ok: false, error: "This request status change is not supported." };
+  }
+
+  const requests = getRequestRecords();
+  const request = requests.find((item) => String(item.id) === String(requestId));
+  if (!request) return { ok: false, error: "This request could not be found." };
+
+  const isSenderCancellation = nextStatus === "Cancelled" && request.senderId === userId;
+  const isOwnerResponse =
+    ["Accepted", "Rejected"].includes(nextStatus) && request.receiverId === userId;
+  if (!isSenderCancellation && !isOwnerResponse) {
+    return { ok: false, error: "You are not allowed to update this request." };
+  }
+  if (request.status !== "Pending") {
+    return { ok: false, error: "Only pending requests can be updated." };
+  }
+
+  const updatedRequests = requests.map((item) =>
+    String(item.id) === String(requestId) ? { ...item, status: nextStatus } : item,
+  );
+  writeStorage(STORAGE_KEYS.requests, updatedRequests);
+  return { ok: true, requests: updatedRequests };
 }
 
 export function ensureDemoData() {
@@ -188,6 +386,9 @@ export function ensureDemoData() {
   if (!readStorage(STORAGE_KEYS.requests, null)) {
     writeStorage(STORAGE_KEYS.requests, DEFAULT_REQUESTS);
   }
+
+  getCurrentUser();
+  getRequestRecords();
 }
 
 export default DEFAULT_SKILLS;

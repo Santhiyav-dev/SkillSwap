@@ -1,36 +1,65 @@
 import { Link } from "react-router-dom";
-import { DEFAULT_SKILLS, readStorage, STORAGE_KEYS } from "../data/skills";
+import {
+  DEFAULT_SKILLS,
+  getCurrentUser,
+  getRequestRecords,
+  readStorage,
+  STORAGE_KEYS,
+} from "../data/skills";
 import "./Home.css";
 
 function Home() {
-  const skills = readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS);
-  const requests = readStorage(STORAGE_KEYS.requests, []);
+  const currentUser = getCurrentUser();
+  const requests = getRequestRecords();
+  const storedSkills = readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS);
+  const skills = Array.isArray(storedSkills) ? storedSkills : DEFAULT_SKILLS;
+  const activeRequests = requests.filter(
+    (request) =>
+      (request.senderId === currentUser.id || request.receiverId === currentUser.id) &&
+      ["Pending", "Accepted"].includes(request.status),
+  );
+  const pendingCount = requests.filter(
+    (request) =>
+      request.status === "Pending" &&
+      (request.senderId === currentUser.id || request.receiverId === currentUser.id),
+  ).length;
 
+  const interests = (currentUser.interests || "")
+    .split(",")
+    .map((interest) => interest.trim().toLowerCase())
+    .filter(Boolean);
   const featuredSkills = [...skills]
-    .filter((skill) => skill.featured)
+    .filter((skill) => skill.ownerId !== currentUser.id)
+    .sort((first, second) => {
+      const firstMatches = interests.includes((first.category || "").toLowerCase());
+      const secondMatches = interests.includes((second.category || "").toLowerCase());
+      return Number(secondMatches) - Number(firstMatches) || Number(second.featured) - Number(first.featured);
+    })
     .slice(0, 3);
 
   const recentSkills = [...skills]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 4);
 
-  const acceptedCount = requests.filter((request) => request.status === "Accepted").length;
-  const learnersCount = Math.max(
-    new Set(requests.map((request) => request.learnerName).filter(Boolean)).size + 12,
-    18,
-  );
+  const acceptedCount = requests.filter(
+    (request) =>
+      request.status === "Accepted" &&
+      (request.senderId === currentUser.id || request.receiverId === currentUser.id),
+  ).length;
+  const storedFavourites = readStorage(STORAGE_KEYS.favourites, []);
+  const savedSkills = Array.isArray(storedFavourites) ? storedFavourites : [];
 
   const stats = [
-    { label: "Skills available", value: `${skills.length}+` },
-    { label: "Learners", value: `${learnersCount}+` },
-    { label: "Exchanges", value: `${acceptedCount + 12}+` },
+    { label: "Skills available", value: skills.length },
+    { label: "Skills being learned", value: new Set(activeRequests.filter((request) => request.senderId === currentUser.id).map((request) => String(request.skillId))).size },
+    { label: "Pending requests", value: pendingCount },
   ];
 
   return (
     <div className="home-page">
       <section className="hero-panel">
         <div className="hero-copy">
-          <span className="eyebrow">Welcome back, Student</span>
+          <span className="eyebrow">Welcome back, {currentUser.name}</span>
           <h1>Share skills. Learn faster. Grow together.</h1>
           <p>
             SkillSwap connects learners with mentors, makers, creators, and curious minds who want to
@@ -77,7 +106,7 @@ function Home() {
 
       <section className="content-section">
         <div className="section-title">
-          <h2>Featured skills</h2>
+          <h2>Recommended skills</h2>
           <Link to="/explore" className="section-link">
             View all
           </Link>
@@ -106,7 +135,7 @@ function Home() {
         ) : (
           <div className="empty-state">
             <h2>No featured skills yet</h2>
-            <p>Start sharing a new skill to populate your dashboard.</p>
+            <p>There are no skills from other learners to recommend yet.</p>
             <Link to="/add-skill" className="primary-btn">
               Add a skill
             </Link>
@@ -148,7 +177,7 @@ function Home() {
           <div className="overview-grid">
             <div>
               <span className="overview-label">Pending</span>
-              <strong>{requests.filter((request) => request.status === "Pending").length}</strong>
+              <strong>{pendingCount}</strong>
             </div>
             <div>
               <span className="overview-label">Accepted</span>
@@ -156,11 +185,11 @@ function Home() {
             </div>
             <div>
               <span className="overview-label">Saved</span>
-              <strong>{readStorage(STORAGE_KEYS.favourites, []).length}</strong>
+              <strong>{savedSkills.length}</strong>
             </div>
             <div>
               <span className="overview-label">Profile</span>
-              <strong>Complete</strong>
+              <strong>{currentUser.name && currentUser.email ? "Complete" : "Incomplete"}</strong>
             </div>
           </div>
         </div>

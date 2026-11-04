@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { DEFAULT_SKILLS, readStorage, STORAGE_KEYS, writeStorage } from "../data/skills";
+import {
+  getCurrentUser,
+  getSkillsOwnedBy,
+  readStorage,
+  STORAGE_KEYS,
+  writeStorage,
+} from "../data/skills";
 import "./MySkills.css";
 
 function MySkills() {
-  const [skills, setSkills] = useState(() => readStorage(STORAGE_KEYS.skills, DEFAULT_SKILLS));
+  const currentUser = getCurrentUser();
+  const [skills, setSkills] = useState(() => getSkillsOwnedBy(currentUser.id));
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -15,7 +22,7 @@ function MySkills() {
   });
 
   const persistSkills = (nextSkills) => {
-    setSkills(nextSkills);
+    setSkills(nextSkills.filter((skill) => skill.ownerId === currentUser.id));
     writeStorage(STORAGE_KEYS.skills, nextSkills);
   };
 
@@ -23,7 +30,10 @@ function MySkills() {
     const confirmed = window.confirm("Are you sure you want to delete this skill?");
     if (!confirmed) return;
 
-    const updatedSkills = skills.filter((skill) => skill.id !== id);
+    const allSkills = readStorage(STORAGE_KEYS.skills, []);
+    const updatedSkills = allSkills.filter(
+      (skill) => !(skill.id === id && skill.ownerId === currentUser.id),
+    );
     persistSkills(updatedSkills);
     if (editingId === id) setEditingId(null);
   };
@@ -52,8 +62,9 @@ function MySkills() {
       return;
     }
 
-    const updatedSkills = skills.map((skill) =>
-      skill.id === id
+    const allSkills = readStorage(STORAGE_KEYS.skills, []);
+    const updatedSkills = allSkills.map((skill) =>
+      skill.id === id && skill.ownerId === currentUser.id
         ? {
             ...skill,
             title: trimmedTitle,
