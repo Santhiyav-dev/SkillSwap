@@ -1,0 +1,81 @@
+
+.my-requests-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.requests-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(109, 40, 217, 0.08);
+  color: var(--primary);
+  border: 1px solid rgba(109, 40, 217, 0.12);
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+.requests-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.request-card {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.request-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.request-scope {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.request-card h2 {
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+}
+
+.request-body {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-soft);
+}
+
+.request-body p {
+  line-height: 1.7;
+}
+
+.request-body strong {
+  color: var(--text);
+}
+
+.request-action {
+  margin-top: 20px;
+}
+
+@media (max-width: 820px) {
+  .requests-list {
+    grid-template-columns: 1fr;
+  }
+}
