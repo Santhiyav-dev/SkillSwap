@@ -1,0 +1,118 @@
+
+.my-skills-container {
+  min-height: 100vh;
+  padding: 40px 6%;
+  background: #f8f7ff;
+}
+
+.my-skills-header {
+  margin-bottom: 30px;
+}
+
+.my-skills-header h1 {
+  color: #6d28d9;
+  font-size: 32px;
+}
+
+.my-skills-header p {
+  color: #666;
+  margin-top: 10px;
+}
+
+.my-skills-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.my-skill-card {
+  background: white;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.06);
+}
+
+.skill-category {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.my-skill-card h2 {
+  margin: 18px 0 10px;
+  color: #333;
+}
+
+.my-skill-card > p {
+  color: #666;
+  line-height: 1.6;
+}
+
+.skill-details {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.skill-details p {
+  margin-bottom: 10px;
+  color: #555;
+  font-size: 14px;
+}
+
+.delete-skill-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-skill-btn:hover {
+  background: #fecaca;
+}
+
+.empty-skills {
+  background: white;
+  padding: 60px 20px;
+  text-align: center;
+  border-radius: 15px;
+}
+
+.empty-skills h2 {
+  color: #6d28d9;
+}
+
+.empty-skills p {
+  color: #666;
+  margin: 15px 0 25px;
+}
+
+.empty-skills a {
+  display: inline-block;
+  padding: 12px 22px;
+  background: #6d28d9;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .my-skills-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .my-skills-grid {
+    grid-template-columns: 1fr;
+  }
+}

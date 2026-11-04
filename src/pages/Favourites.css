@@ -1,0 +1,138 @@
+
+.favourites-container {
+  min-height: 100vh;
+  padding: 40px 6%;
+  background: #f8f7ff;
+}
+
+.favourites-header {
+  margin-bottom: 30px;
+}
+
+.favourites-header h1 {
+  color: #6d28d9;
+  font-size: 32px;
+}
+
+.favourites-header p {
+  color: #666;
+  margin-top: 10px;
+}
+
+.favourites-count {
+  margin-bottom: 20px;
+  color: #6d28d9;
+  font-weight: 600;
+}
+
+.favourites-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.favourite-card {
+  background: white;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.06);
+}
+
+.favourite-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.favourite-category {
+  background: #ede9fe;
+  color: #6d28d9;
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.heart-icon {
+  font-size: 23px;
+}
+
+.favourite-card h2 {
+  margin: 20px 0 12px;
+  color: #333;
+}
+
+.favourite-card > p {
+  color: #666;
+  line-height: 1.6;
+}
+
+.favourite-details {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.favourite-details p {
+  margin-bottom: 10px;
+  color: #555;
+  font-size: 14px;
+}
+
+.remove-favourite-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove-favourite-btn:hover {
+  background: #fecaca;
+}
+
+.empty-favourites {
+  background: white;
+  padding: 60px 20px;
+  text-align: center;
+  border-radius: 15px;
+}
+
+.empty-heart {
+  font-size: 55px;
+  margin-bottom: 15px;
+}
+
+.empty-favourites h2 {
+  color: #6d28d9;
+}
+
+.empty-favourites p {
+  color: #666;
+  margin: 15px 0 25px;
+}
+
+.explore-link {
+  display: inline-block;
+  padding: 12px 22px;
+  background: #6d28d9;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+@media (max-width: 900px) {
+  .favourites-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .favourites-grid {
+    grid-template-columns: 1fr;
+  }
+}
